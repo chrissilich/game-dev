@@ -1,13 +1,15 @@
 #pragma strict
 
 public var maxSpeed:Number = 8;
-public var acceleration:Number = 0.2;
+public var acceleration:Number;
 public var jumpHeight:Number;
 public var upwardForce:Number;
 private var jumpUsed:boolean = false;
 private var bounced:boolean = true;
 private var LC:LevelController;
-private var mode = "jumping"; 
+public var mode = "jumping"; 
+public var anim:Animator;
+private var grounded:boolean;
 
 function Start () {
 	// Get level controller
@@ -19,11 +21,14 @@ function Start () {
     Debug.Log(jumpHeight);
     
     Debug.Log(mode);
+    anim = GetComponent("Animator");
+    grounded = true;
 }
 
 public function skyLevelTrigger() {
 
 	mode = "flying";
+    anim.SetBool("Fly", true);
     
     LC.speedDrainRate = 0.003;
     LC.levelSpeed = 6;
@@ -31,7 +36,7 @@ public function skyLevelTrigger() {
 
 public function useBounce() {
     
-    yield WaitForSeconds(1);
+    yield WaitForSeconds(0.1);
     bounced = true;
 }
 
@@ -41,7 +46,12 @@ function FixedUpdate () {
     upwardForce = LC.levelSpeed;
 
 	var rb = GetComponent(Rigidbody2D);
-    
+
+	var rayStartTop = transform.position;
+	rayStartTop.y += 2.6;
+	var hitSomethingTop:RaycastHit2D = Physics2D.Raycast(rayStartTop, Vector2.up, 0.1);
+	Debug.DrawRay(rayStartTop, Vector2.up * 1, Color.red, 1);
+
     var rayStart = transform.position;
     rayStart.y -= 2.6;
     Debug.DrawRay(rayStart, -Vector2.up * 0.1, Color.green, 1 );
@@ -51,24 +61,45 @@ function FixedUpdate () {
     var hitSomething2:RaycastHit2D = Physics2D.Raycast(rayStart, -Vector2.up, 0.1);
     rayStart.x += 2;
     var hitSomething3:RaycastHit2D = Physics2D.Raycast(rayStart, -Vector2.up, 0.1);
-    
-    
+
 	if (mode == "jumping") {
+		acceleration = 0.2;
         
         if ( Input.GetKey(KeyCode.LeftArrow) ) {
-        rb.velocity.x -= acceleration;
+        	transform.localRotation = Quaternion.Euler(0, -180, 0);
+            rb.velocity.x -= acceleration;
+            if (grounded) {
+                anim.SetBool("Walk", true);
+            }
         } else if ( Input.GetKey(KeyCode.RightArrow) ) {
+        	transform.localRotation = Quaternion.Euler(0, 0, 0);
             rb.velocity.x += acceleration;
+            if (grounded) {
+                anim.SetBool("Walk", true);
+            }
+        } else if (Input.GetKeyUp(KeyCode.RightArrow)) {
+            anim.SetBool("Walk", false);
+            rb.velocity.x = 0;
+        } else if (Input.GetKeyUp(KeyCode.LeftArrow)) {
+            anim.SetBool("Walk", false);
+            rb.velocity.x = 0;
         }
 
 		if ( (hitSomething1.collider && hitSomething1.collider.tag == "Ground" && hitSomething1.distance < 0.1) || 
            (hitSomething2.collider && hitSomething2.collider.tag == "Ground" && hitSomething2.distance < 0.1) || 
            (hitSomething3.collider && hitSomething3.collider.tag == "Ground" && hitSomething3.distance < 0.1)) {
+            
+            anim.SetBool("Jump", false);
+            grounded = true;
 
 			if ( !jumpUsed && Input.GetKey(KeyCode.UpArrow) ) {
                 
 				jumpUsed = true;
-				rb.velocity.y = jumpHeight; // get JumpSpeed from LevelController
+				rb.velocity.y = jumpHeight;
+                grounded = false;
+                anim.SetBool("Jump", true);
+                
+                // get JumpSpeed from LevelController
 			}
 
 			if (Input.GetKey(KeyCode.UpArrow)) {
@@ -88,22 +119,30 @@ function FixedUpdate () {
 
 
 	} else if ( mode == "flying" ) {
+
+		acceleration = 1;
         
         if ( Input.GetKey(KeyCode.LeftArrow) ) {
             rb.velocity.x -= acceleration;
+            transform.localRotation = Quaternion.Euler(0, 0, 20);
         } else if ( Input.GetKey(KeyCode.RightArrow) ) {
             rb.velocity.x += acceleration;
+            transform.localRotation = Quaternion.Euler(0, 0, -20);
+        } else if ( Input.GetKeyUp(KeyCode.LeftArrow) ) {
+        	rb.velocity.x = 0;
+        	transform.localRotation = Quaternion.Euler(0, 0, 0);
+        } else if ( Input.GetKeyUp(KeyCode.RightArrow) ) {
+        	rb.velocity.x = 0;
+        	transform.localRotation = Quaternion.Euler(0, 0, 0);
         }
         
         if (bounced == true) {
             rb.velocity.y = upwardForce;
         }
         
-        if ( (hitSomething1.collider && hitSomething1.collider.tag == "Ground" && hitSomething1.distance < 0.1) || 
-           (hitSomething2.collider && hitSomething2.collider.tag == "Ground" && hitSomething2.distance < 0.1) || 
-           (hitSomething3.collider && hitSomething3.collider.tag == "Ground" && hitSomething3.distance < 0.1)) {
+        if ( (hitSomethingTop.collider && hitSomethingTop.collider.tag == "Ground" && hitSomethingTop.distance < 0.1)) {
             
-            rb.velocity.y -= upwardForce + 5;
+            rb.velocity.y = -5;
             bounced = false;
             
             useBounce();
