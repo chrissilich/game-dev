@@ -12,9 +12,10 @@ function Start () {
 function Update () {
 	mode = PC.mode;
 
-    this.gameObject.transform.position.y = player.transform.position.y;
+    this.gameObject.transform.position.y = player.transform.position.y + 2;
 
-    if ( mode == "flying" ) {
+    if ( mode == "flying" || mode == "FreeFall" ) {
     	this.gameObject.transform.position.x = player.transform.position.x;
+        this.gameObject.transform.position.z = -40;
     }
 }

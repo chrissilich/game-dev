@@ -23,6 +23,10 @@ function Start () {
     Debug.Log(mode);
     anim = GetComponent("Animator");
     grounded = true;
+
+    if (EditorApplication.currentScene == "Assets/Skytime.unity") {
+    	mode = "FreeFall";
+    }
 }
 
 public function skyLevelTrigger() {
@@ -32,6 +36,12 @@ public function skyLevelTrigger() {
     
     LC.speedDrainRate = 0.003;
     LC.levelSpeed = 6;
+}
+
+public function freeFallTrigger() {
+
+	Application.LoadLevel("Skytime");
+	mode = "FreeFall";
 }
 
 public function useBounce() {
@@ -147,5 +157,35 @@ function FixedUpdate () {
             
             useBounce();
         }
+        if ( (hitSomethingTop.collider && hitSomethingTop.collider.tag == "sceneTrigger" && hitSomethingTop.distance < 0.1)) {
+
+			freeFallTrigger();
+        }
+	} else if ( mode == "FreeFall" ) {
+		rb.velocity.y = -10;
+
+		acceleration = 1;
+
+		if ( Input.GetKey(KeyCode.LeftArrow) ) {
+            rb.velocity.x -= acceleration;
+            transform.localRotation = Quaternion.Euler(0, 0, -20);
+        } else if ( Input.GetKey(KeyCode.RightArrow) ) {
+            rb.velocity.x += acceleration;
+            transform.localRotation = Quaternion.Euler(0, 0, 20);
+        } else if ( Input.GetKeyUp(KeyCode.LeftArrow) ) {
+        	rb.velocity.x = 0;
+        	transform.localRotation = Quaternion.Euler(0, 0, 0);
+        } else if ( Input.GetKeyUp(KeyCode.RightArrow) ) {
+        	rb.velocity.x = 0;
+        	transform.localRotation = Quaternion.Euler(0, 0, 0);
+        }
+
+        if ( (hitSomething1.collider && hitSomething1.collider.tag == "ParachuteTrigger" && hitSomething1.distance < 0.1) ||
+            (hitSomething2.collider && hitSomething2.collider.tag == "ParachuteTrigger" && hitSomething2.distance < 0.1) ||
+            (hitSomething3.collider && hitSomething3.collider.tag == "ParachuteTrigger" && hitSomething3.distance < 0.1)) {
+
+            anim.SetBool("parachute", true);
+        }
 	}
+
 } 
